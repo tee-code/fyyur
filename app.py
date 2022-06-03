@@ -110,16 +110,44 @@ def search_venues():
 
   query = request.form.get('search_term', '')  #get the search item from request
 
-  venues = Venue.query.filter(Venue.name.ilike(f"%{query}%")).all()
+  venues_by_name = Venue.query.filter(Venue.name.ilike(f"%{query}%")).all()
+  venues_by_state = Venue.query.filter(Venue.state.ilike(f"%{query}%")).all()
+  venues_by_city = Venue.query.filter(Venue.city.ilike(f"%{query}%")).all()
+
   response = {
-    "count": len(venues),
-    "data": []
+    "name": {
+      "count": len(venues_by_name),
+      "data": []
+    },
+    "state": {
+      "count": len(venues_by_state),
+      "data": []
+    },
+    "city": {
+      "count": len(venues_by_city),
+      "data": []
+    }
+    
   }
 
-  for venue in venues:
-    response["data"].append({
+  for venue in venues_by_name:
+    response["name"]["data"].append({
       "id": venue.id,
       "name": venue.name,
+      "num_upcoming_shows": venue.shows.filter(Show.start_time > datetime.now()).count(),
+    })
+  for venue in venues_by_state:
+    response["state"]["data"].append({
+      "id": venue.id,
+      "name": venue.name,
+      "state": venue.state,
+      "num_upcoming_shows": venue.shows.filter(Show.start_time > datetime.now()).count(),
+    })
+  for venue in venues_by_city:
+    response["city"]["data"].append({
+      "id": venue.id,
+      "name": venue.name,
+      "city": venue.city,
       "num_upcoming_shows": venue.shows.filter(Show.start_time > datetime.now()).count(),
     })
 
@@ -282,20 +310,49 @@ def search_artists():
   # search for "band" should return "The Wild Sax Band".
   
   search_term = request.form.get('search_term', '')
-  artists = Artist.query.filter(Artist.name.ilike(f"%{search_term}%")).all()
-  data = []
+  artists_by_name = Artist.query.filter(Artist.name.ilike(f"%{search_term}%")).all()
+  artists_by_state = Artist.query.filter(Artist.state.ilike(f"%{search_term}%")).all()
+  artists_by_city = Artist.query.filter(Artist.city.ilike(f"%{search_term}%")).all()
+  
+  response = {
+    "name": {
+      "count": len(artists_by_name),
+      "data": []
+    },
+    "state": {
+      "count": len(artists_by_state),
+      "data": []
+    },
+    "city": {
+      "count": len(artists_by_city),
+      "data": []
+    }
+    
+  }
 
-  for artist in artists:
-    data.append({
+  for artist in artists_by_name:
+    response['name']['data'].append({
       "id": artist.id,
       "name": artist.name,
       "num_upcoming_shows": artist.shows.filter(Show.start_time > datetime.now()).count(),
     })
 
-  response={
-    "count": len(artists),
-    "data": data
-  }
+  for artist in artists_by_state:
+    response['state']['data'].append({
+    "id": artist.id,
+    "name": artist.name,
+    "state": artist.state,
+    "num_upcoming_shows": artist.shows.filter(Show.start_time > datetime.now()).count(),
+  })
+
+  for artist in artists_by_city:
+    response['city']['data'].append({
+    "id": artist.id,
+    "name": artist.name,
+    "city": artist.city,
+    "num_upcoming_shows": artist.shows.filter(Show.start_time > datetime.now()).count(),
+  })
+
 
   return render_template('pages/search_artists.html', results=response, search_term=request.form.get('search_term', ''))
 
