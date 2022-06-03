@@ -126,6 +126,17 @@ class VenueForm(Form):
         'seeking_description'
     )
 
+    available_from = DateTimeField(
+        'available_from',
+        validators=[DataRequired()],
+        default= datetime.today()
+    )
+    available_to = DateTimeField(
+        'available_to',
+        validators=[DataRequired()],
+        default= datetime.today()
+    )
+
 
 
 class ArtistForm(Form):
@@ -197,6 +208,16 @@ class ArtistForm(Form):
     )
     image_link = StringField(
         'image_link'
+    )
+    available_from = DateTimeField(
+        'available_from',
+        validators=[DataRequired()],
+        default= datetime.today()
+    )
+    available_to = DateTimeField(
+        'available_to',
+        validators=[DataRequired()],
+        default= datetime.today()
     )
     genres = SelectMultipleField(
         'genres', validators=[DataRequired()],

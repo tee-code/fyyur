@@ -185,10 +185,14 @@ def show_venue(venue_id):
       "start_time": str(upcoming_show.start_time)
     })
   
+  venue.available_from = str(venue.available_from) if venue.available_from else False 
+  venue.available_to = str(venue.available_to) if venue.available_to else False 
   venue.past_shows = past_shows_data
   venue.past_shows_count = len(past_shows_data)
   venue.upcoming_shows = upcoming_shows_data
   venue.upcoming_shows_count = len(upcoming_shows_data)
+
+  venue.website = venue.website_link
 
   return render_template('pages/show_venue.html', venue=venue)
 
@@ -222,7 +226,10 @@ def create_venue_submission():
      
     seeking_description = request.form['seeking_description']
 
-    venue = Venue(name=name, phone=phone, genres=genres, city=city, state=state, address=address, facebook_link=facebook_link, image_link=image_link, website_link=website_link, seeking_talent=seeking_talent, seeking_description=seeking_description)
+    available_from = request.form['available_from']
+    available_to = request.form['available_from']
+
+    venue = Venue(available_from=available_from, available_to=available_to, name=name, phone=phone, genres=genres, city=city, state=state, address=address, facebook_link=facebook_link, image_link=image_link, website_link=website_link, seeking_talent=seeking_talent, seeking_description=seeking_description)
     db.session.add(venue)
     db.session.commit()
 
@@ -392,8 +399,9 @@ def show_artist(artist_id):
   artist.past_shows_count = len(past_shows_data)
   artist.upcoming_shows = upcoming_shows_data
   artist.upcoming_shows_count = len(upcoming_shows_data)
-
-
+  artist.available_from = str(artist.available_from) if artist.available_from else False  
+  artist.available_to = str(artist.available_to) if artist.available_to else False 
+  artist.website = artist.website_link
   return render_template('pages/show_artist.html', artist=artist)
 
 #  Update
@@ -416,6 +424,8 @@ def edit_artist(artist_id):
     form.website_link.data = artist.website_link
     form.seeking_venue.data = artist.seeking_venue
     form.seeking_description.data = artist.seeking_description
+    form.available_from.data = artist.available_from
+    form.available_to.data = artist.available_to
 
   return render_template('forms/edit_artist.html', form=form, artist=artist)
 
@@ -439,6 +449,9 @@ def edit_artist_submission(artist_id):
     
     artist.seeking_venue = bool(request.form.get('seeking_venue'))
     artist.seeking_description = request.form['seeking_description']
+
+    artist.available_from = request.form['available_from']
+    artist.available_to = request.form['available_to']
 
     db.session.commit()
 
@@ -477,6 +490,8 @@ def edit_venue(venue_id):
     form.website_link.data = venue.website_link
     form.seeking_talent.data = venue.seeking_talent
     form.seeking_description.data = venue.seeking_description
+    form.available_from.data = venue.available_from
+    form.available_to.data = venue.available_to
 
   return render_template('forms/edit_venue.html', form=form, venue=venue)
 
@@ -498,7 +513,8 @@ def edit_venue_submission(venue_id):
     venue.facebook_link = request.form.get('facebook_link', '')
     venue.website_link = request.form.get('website_link', '')
     venue.seeking_talent = bool(request.form.get('seeking_talent'))  
-    
+    venue.available_from = request.form['available_from']
+    venue.available_to = request.form['available_to']
     venue.seeking_description = request.form['seeking_description']
 
     db.session.commit()
@@ -546,8 +562,10 @@ def create_artist_submission():
 
     seeking_venue = bool(request.form.get('seeking_venue'))
     seeking_description = request.form['seeking_description']
+    available_from = request.form['available_from']
+    available_to = request.form['available_from']
     
-    artist = Artist(name=name, phone=phone, genres=genres, city=city, state=state, facebook_link=facebook_link, image_link=image_link, website_link=website_link, seeking_venue=seeking_venue, seeking_description=seeking_description)
+    artist = Artist(name=name, phone=phone, genres=genres, city=city, state=state, facebook_link=facebook_link, image_link=image_link, website_link=website_link, seeking_venue=seeking_venue, seeking_description=seeking_description, available_from=available_from, available_to=available_to)
     db.session.add(artist)
     db.session.commit()
 
@@ -606,18 +624,34 @@ def create_show_submission():
   # TODO: insert form data as a new Show record in the db, instead
 
   show = {}
-  error = False
+  error = True
   try:
 
-    start_time = request.form.get('start_time', '')
+    start_time_str = request.form.get('start_time', '')
     artist_id = request.form.get('artist_id', '')
     venue_id = request.form.get('venue_id', '')
 
-    show = Show(start_time=start_time, artist_id=artist_id, venue_id=venue_id)
-    db.session.add(show)
-    db.session.commit()
 
-    flash('Show was successfully listed!')
+    #checking for artist and venue availability
+    artist = Artist.query.filter_by(id=int(artist_id)).first()
+    venue = Venue.query.filter_by(id=int(venue_id)).first()
+
+    start_time = datetime.strptime(start_time_str, '%Y-%m-%d %H:%M:%S')
+
+    if start_time < artist.available_from or start_time > artist.available_to:
+      flash('Show can not be created. Artist is not available. Available from: '+str(artist.available_from) + " till: " + str(artist.available_to))
+    elif start_time < venue.available_from or start_time > venue.available_to:
+      flash('Show can not be created. Venue is not available. Available from: '+str(venue.available_from) + " till: " + str(venue.available_to))
+    else:
+      #create show
+      show = Show(start_time=start_time_str, artist_id=artist_id, venue_id=venue_id)
+
+      db.session.add(show)
+      db.session.commit()
+
+      error = False
+
+      flash('Show was successfully listed!')
 
   except:
     # TODO: on unsuccessful db insert, flash an error instead.
@@ -628,10 +662,12 @@ def create_show_submission():
     db.session.rollback()
     print(sys.exc_info())
   finally:
-
     db.session.close()
-
-  return render_template('pages/home.html')
+  if error:
+    form = ShowForm()
+    return render_template('forms/new_show.html', form=form)
+  else:
+    return redirect(url_for('index'))
 
 @app.errorhandler(404)
 def not_found_error(error):
