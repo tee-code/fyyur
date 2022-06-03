@@ -54,7 +54,15 @@ app.jinja_env.filters['datetime'] = format_datetime
 
 @app.route('/')
 def index():
-  return render_template('pages/home.html')
+  venues = Venue.query.order_by(Venue.id).limit(10).all()
+  venues.reverse()
+  artists = Artist.query.order_by(Artist.id).limit(10).all()
+  artists.reverse()
+  data = {
+    "venues": venues,
+    "artists": artists
+  }
+  return render_template('pages/home.html', data=data)
 
 
 #  Venues
@@ -226,6 +234,31 @@ def delete_venue(venue_id):
     success = False
     # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
     flash('An error occurred. Venue ' + venue_id + ' could not be deleted.')
+    db.session.rollback()
+    print(sys.exc_info())
+  finally:
+    db.session.close()
+
+  return jsonify({'success': success})
+
+@app.route('/artists/<artist_id>', methods=['DELETE'])
+def delete_artist(artist_id):
+  # TODO: Complete this endpoint for taking a venue_id, and using
+  # SQLAlchemy ORM to delete a record. Handle cases where the session commit could fail.
+
+  # BONUS CHALLENGE: Implement a button to delete a Venue on a Venue Page, have it so that
+  # clicking that button delete it from the db then redirect the user to the homepage
+  success = True
+  try:
+
+    Artist.query.filter_by(id=artist_id).delete()
+    db.session.commit()
+    flash('Artist ' + artist_id + ' was successfully deleted!')
+
+  except:
+    success = False
+    # e.g., flash('An error occurred. Venue ' + data.name + ' could not be listed.')
+    flash('An error occurred. Artist ' + artist_id + ' could not be deleted.')
     db.session.rollback()
     print(sys.exc_info())
   finally:
