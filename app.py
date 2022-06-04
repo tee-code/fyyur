@@ -79,10 +79,10 @@ def venues():
   out = ""
 
   for index,venue in enumerate(venues):
-    area = venue.city+":"+venue.state 
+    area = venue.city+":"+venue.state #get the unique key
     
-    if area not in areas.keys():
-      areas[area] = len(data)
+    if area not in areas.keys(): #if city and venue not in areas
+      areas[area] = len(data)  
       data.append({
         "city": venue.city,
         "state": venue.state,
@@ -94,7 +94,7 @@ def venues():
       })
     else:
      
-      key = areas[area]
+      key = areas[area]  #get the key of already exist venue with same city and state
       
       #print(index, area, key, data[key], data[0], '\n')
       data[key]['venues'].append({
