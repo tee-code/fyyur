@@ -76,12 +76,13 @@ def venues():
   venues = Venue.query.all()
   areas = {}
   data = []
+  out = ""
 
   for index,venue in enumerate(venues):
     area = venue.city+":"+venue.state 
     
     if area not in areas.keys():
-      areas[area] = index
+      areas[area] = len(data)
       data.append({
         "city": venue.city,
         "state": venue.state,
@@ -92,12 +93,16 @@ def venues():
           }]
       })
     else:
+     
       key = areas[area]
+      
+      #print(index, area, key, data[key], data[0], '\n')
       data[key]['venues'].append({
         "id": venue.id,
         "name": venue.name,
         "num_upcoming_shows": venue.shows.filter(Show.start_time > datetime.now()).count(),
       })
+      #print(data[key]['venues'])
 
   return render_template('pages/venues.html', areas=data);
 
@@ -249,7 +254,7 @@ def create_venue_submission():
   finally:
     db.session.close()
 
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 @app.route('/venues/<venue_id>', methods=['DELETE'])
 def delete_venue(venue_id):
@@ -586,7 +591,7 @@ def create_artist_submission():
     
     db.session.close()
   
-  return render_template('pages/home.html')
+  return redirect(url_for('index'))
 
 #  Shows
 #  ----------------------------------------------------------------
