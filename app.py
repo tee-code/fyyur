@@ -673,6 +673,47 @@ def create_show_submission():
 def not_found_error(error):
     return render_template('errors/404.html'), 404
 
+@app.route('/shows/search', methods=['POST'])
+def search_shows():
+
+  query = request.form.get('search_term', '')  #get the search item from request
+
+  shows_by_artist = Show.query.filter(Show.artist_id == int(query)).all()
+  shows_by_venue = Show.query.filter(Show.venue_id == int(query)).all()
+
+  response = {
+    "artist": {
+      "count": len(shows_by_artist),
+      "data": []
+    },
+    "venue": {
+      "count": len(shows_by_venue),
+      "data": []
+    }
+  }
+
+  for show in shows_by_artist:
+    response["artist"]["data"].append({
+      "venue_id": show.venue_id,
+      "venue_name": show.venue.filter_by(id=show.venue_id).first().name,
+      "artist_id": show.artist_id,
+      "artist_name": show.artist.filter_by(id=show.artist_id).first().name,
+      "artist_image_link": show.artist.filter_by(id=show.artist_id).first().image_link,
+      "start_time": str(show.start_time)
+    })
+
+    for show in shows_by_venue:
+      response["venue"]["data"].append({
+        "venue_id": show.venue_id,
+        "venue_name": show.venue.filter_by(id=show.venue_id).first().name,
+        "artist_id": show.artist_id,
+        "artist_name": show.artist.filter_by(id=show.artist_id).first().name,
+        "artist_image_link": show.artist.filter_by(id=show.artist_id).first().image_link,
+        "start_time": str(show.start_time)
+      })
+  
+  return render_template('pages/show.html', results=response, search_term=request.form.get('search_term', ''))
+
 @app.errorhandler(500)
 def server_error(error):
     return render_template('errors/500.html'), 500
